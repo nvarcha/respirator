@@ -74,6 +74,7 @@ const int act1_ambu = 0;
 /*********************************************/
 /************ GENERAL VARIABLES **************/
 /*********************************************/
+bool diagnostic_errors = false;
 
 // Start/stop (probably temporary)
 const int pin_start_stop_button = 2;
@@ -92,7 +93,7 @@ void setup() {
 
   #ifdef DEBUG
   Serial.println("Initializing Respirator Project - v0.0.1");
-  Serial.println("Public Domain - As is - Use at your own risk");
+  Serial.println("Copyright (c) 2020 - Nicolas Varchavsky, Joel Ramos Pacheco, Sebastian Bourre");
   Serial.println("https://github.com/nvarcha/respirator");
   #endif
   
@@ -125,6 +126,11 @@ void togglePower() {
  */
 void loop() {
 
+  // Skip look if we had diagnostic errors
+  if (diagnostic_errors) {
+    return;
+  }
+  
   fc1Read();
   Serial.println("FC1 value");
   Serial.println(fc1_value);
@@ -153,11 +159,23 @@ void startupDiagnostics() {
   #endif
 
   // TEST O2 intake
-  // Open O2 valve
+  // Open O2 valve and wait
+  Serial.println("Opening O2 valve");
+  ev1Open();
+  delay(1000);
+  
   // Check O2 flowmeter
+  fc1Read();
+    
   // Are we getting a positive flow?
-  // If not, alert (sound, email, whatever)
+  if (!fc1Positive()) {
+    // If not, alert (sound, email, whatever)
+    Serial.println("****** ERROR: O2 FLOW CONTROL NOT POSITIVE ******");
+    diagnostic_errors = true;
+  }
+  
   // Close O2 valve
+  ev1Close();
 
   // TEST Air intake
   // Open Air valve
@@ -166,7 +184,10 @@ void startupDiagnostics() {
   // If not, alert (sound, email, whatever)
   // Close Air valve
 
-  
+
+  if (diagnostic_errors) {
+    Serial.println("Diagnostic errors detected. Cannot start. Read the log and fix");
+  }
   
 }
 
