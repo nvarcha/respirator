@@ -1,7 +1,7 @@
 /**
  * Respirator project - GNU
  * 
- * Copyright (c) 2020 - Nicolas Varchavsky, Joel Ramos Pacheco, Sebastian Bourre - All rights reserved
+ * GNU GENERAL PUBLIC LICENSE - Version 3, 29 June 2007
  */
 
 // Set to 1 to enable serial debug, 0 to disable it
@@ -52,13 +52,15 @@ const int fc3_gas = A3;
  * Stored mostly for debugging and feedback purposes
  */
 int fc1_value = 0;
+int fc2_value = 0;
 
 /**
  * Flow-control thresholds
  * These thresholds identified values that, when greater or equal, are 
  * considered a positive flow
  */
- const int fc1_active_threshold = 400;
+const int fc1_active_threshold = 400;
+const int fc2_active_threshold = 400;
 
 /**
  * Possible pressure sensor used to sense if the patient is breathing
@@ -91,11 +93,8 @@ void setup() {
   Serial.begin(9600);
   #endif
 
-  #ifdef DEBUG
-  Serial.println("Initializing Respirator Project - v0.0.1");
-  Serial.println("Copyright (c) 2020 - Nicolas Varchavsky, Joel Ramos Pacheco, Sebastian Bourre");
-  Serial.println("https://github.com/nvarcha/respirator");
-  #endif
+  debug("Initializing Respirator Project - v0.0.1");
+  debug("https://github.com/nvarcha/respirator");
   
   // Configure the following pins as output pins
   pinMode(ev1_o2_in, OUTPUT);
@@ -132,10 +131,8 @@ void loop() {
   }
   
   fc1Read();
-  Serial.println("FC1 value");
-  Serial.println(fc1_value);
-  Serial.println("FC1 status");
-  Serial.println(fc1Positive());
+  debug("FC1 value");
+  debug(fc1_value);
 
   // Early out if we're powered off
   if (!poweredOn) {
@@ -154,13 +151,10 @@ void loop() {
  * to asses the result. Others, a self-diagnosis may be possible.
  */
 void startupDiagnostics() {
-  #ifdef DEBUG
-  Serial.println("Starting diagnostics");
-  #endif
+  debug("Starting diagnostics");
 
   // TEST O2 intake
   // Open O2 valve and wait
-  Serial.println("Opening O2 valve");
   ev1Open();
   delay(1000);
   
@@ -170,7 +164,7 @@ void startupDiagnostics() {
   // Are we getting a positive flow?
   if (!fc1Positive()) {
     // If not, alert (sound, email, whatever)
-    Serial.println("****** ERROR: O2 FLOW CONTROL NOT POSITIVE ******");
+    debug("****** ERROR: O2 FLOW CONTROL NOT POSITIVE ******");
     diagnostic_errors = true;
   }
   
@@ -179,29 +173,59 @@ void startupDiagnostics() {
 
   // TEST Air intake
   // Open Air valve
+  ev2Open();
+  delay(1000);
+  
   // Check Air flowmeter
+  fc2Read();
+  
   // Are we getting a positive flow?
-  // If not, alert (sound, email, whatever)
-  // Close Air valve
-
-
-  if (diagnostic_errors) {
-    Serial.println("Diagnostic errors detected. Cannot start. Read the log and fix");
+  if (!fc2Positive()) {
+    // If not, alert (sound, email, whatever)
+    debug("****** ERROR: AIR FLOW CONTROL NOT POSITIVE ******");
+    diagnostic_errors = true;
   }
   
+  // Close Air valve
+  ev2Close();
+
+  if (diagnostic_errors) {
+    debug("Diagnostic errors detected. Cannot start. Read the log and fix");
+  }
+}
+
+/**
+ * Simple debug using Serial.println
+ * It's wrapped inside an #ifdef DEBUG to easily remove outputs
+ */
+void debug(const char *text) {
+  #ifdef DEBUG
+  Serial.println(text);
+  #endif
 }
 
 /*********************************/
 /**** Electro vale operations ****/
 /*********************************/
 void ev1Open() {
-  digitalWrite(ev1_o2_in,HIGH);
+  debug("Opening O2 valve");
+  digitalWrite(ev1_o2_in, HIGH);
 }
 
 void ev1Close() {
-  digitalWrite(ev1_o2_in,LOW);
+  debug("Closing O2 valve");
+  digitalWrite(ev1_o2_in, LOW);
 }
 
+void ev2Open() {
+  debug("Opening Air valve");
+  digitalWrite(ev2_air_in, HIGH);
+}
+
+void ev2Close() {
+  debug("Closing Air valve");
+  digitalWrite(ev2_air_in, LOW);
+}
 
 /*********************************/
 /**** Flow control operations ****/
@@ -215,9 +239,24 @@ void fc1Read() {
 }
 
 /**
+ * Read the FC2 value
+ */
+void fc2Read() {
+  fc2_value = analogRead(fc2_air);
+}
+
+/**
  * Returns true when the value of the FC1 is
  * equal or greater than the specified threshold
  */
 bool fc1Positive() {
   return (fc1_value >= fc1_active_threshold);
+}
+
+/**
+ * Returns true when the value of the FC2 is
+ * equal or greater than the specified threshold
+ */
+bool fc2Positive() {
+  return (fc2_value >= fc2_active_threshold);
 }
