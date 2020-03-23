@@ -36,6 +36,10 @@ const int ev5_output_gas = 15;
  * Electro-valves status
  */
 bool ev1_status = CLOSED;
+bool ev2_status = CLOSED;
+bool ev3_status = CLOSED;
+bool ev4_status = CLOSED;
+bool ev5_status = CLOSED;
 
 /**
  * Flow-control flowmeter or rotameter.
@@ -210,21 +214,25 @@ void debug(const char *text) {
 void ev1Open() {
   debug("Opening O2 valve");
   digitalWrite(ev1_o2_in, HIGH);
+  ev1_status = OPEN;
 }
 
 void ev1Close() {
   debug("Closing O2 valve");
   digitalWrite(ev1_o2_in, LOW);
+  ev1_status = CLOSED;
 }
 
 void ev2Open() {
   debug("Opening Air valve");
   digitalWrite(ev2_air_in, HIGH);
+  ev2_status = OPEN;
 }
 
 void ev2Close() {
   debug("Closing Air valve");
   digitalWrite(ev2_air_in, LOW);
+  ev2_status = CLOSED;
 }
 
 /*********************************/
